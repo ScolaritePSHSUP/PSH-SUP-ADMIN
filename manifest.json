@@ -1,7 +1,7 @@
 {
   "name": "PSH SUP – Administration",
   "short_name": "PSH Admin",
-  "start_url": "/PSH-SHUP-ADMIN/admin-dashboard.html",
+  "start_url": "/PSH-SHUP-ADMIN/",
   "scope": "/PSH-SHUP-ADMIN/",
   "display": "standalone",
   "background_color": "#b23a2c",
@@ -19,4 +19,3 @@
     }
   ]
 }
-
