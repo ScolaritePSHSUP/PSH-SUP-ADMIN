@@ -160,6 +160,28 @@ if (window.matchMedia("(display-mode: standalone)").matches) {
   const installBtn = document.getElementById("installPWA");
   if (installBtn) installBtn.style.display = "none";
 }
+let deferredPrompt;
+const installBtn = document.getElementById("installPWA");
+
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+
+  // 🔥 Android attend souvent une interaction
+  setTimeout(() => {
+    installBtn.style.display = "block";
+  }, 500);
+});
+
+installBtn.addEventListener("click", async () => {
+  if (!deferredPrompt) return;
+
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+
+  deferredPrompt = null;
+  installBtn.style.display = "none";
+});
 
 
 
