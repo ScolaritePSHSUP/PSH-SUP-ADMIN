@@ -4,24 +4,30 @@
   <meta charset="UTF-8">
 
   <!-- PWA -->
-<link rel="manifest" href="/PSH-SUP-ADMIN/admin-manifest.json">
+  <meta name="theme-color" content="#b23a2c">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="PSH SUP – Admin">
 
-<meta name="theme-color" content="#b23a2c">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="PSH SUP – Admin">
+  <!-- Manifest -->
+  <link rel="manifest" href="./admin-manifest.json">
 
-  <title>Admin PSH SUP – Actualités</title>
+  <title>PSH SUP – Administration</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  
-    <!-- Icons -->
-  <link rel="apple-touch-icon" href="/PSH-SUP-ADMIN/icons/apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="192x192" href="/PSH-SUP-ADMIN/icons/icon-192.png">
-  <link rel="icon" type="image/png" sizes="512x512" href="/PSH-SUP-ADMIN/icons/icon-512.png">
 
+  <!-- Icons -->
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png">
+
+  <!-- Styles -->
   <link rel="stylesheet" href="../style.css">
+
+  <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
+
 
 <body>
 
@@ -295,6 +301,10 @@ document.getElementById("logout").onclick = async () => {
   await supabaseClient.auth.signOut();
   window.location.href = "admin-login.html";
 };
+
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./admin-sw.js");
+}
 </script>
 
 </body>
