@@ -1,5 +1,5 @@
 const CACHE_NAME = "psh-admin-v5";
-const BASE = "/PSH-SHUP-ADMIN";
+const BASE = "/PSH-SUP-ADMIN";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
