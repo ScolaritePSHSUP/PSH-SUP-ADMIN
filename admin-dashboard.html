@@ -38,6 +38,10 @@
   <p>Tableau de bord de gestion</p>
 </header>
 
+<button id="installPWA" class="btn-secondary" style="display:none;">
+  📲 Installer l’application
+</button>
+
 <main class="page">
 
   <div class="grid">
@@ -115,6 +119,48 @@ const supabaseClient = supabase.createClient(
     window.location.href = "admin-login.html";
   }
 })();
+
+
+let deferredPrompt;
+const installBtn = document.getElementById("installPWA");
+
+/* 🔔 Détecte si la PWA est installable */
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault(); // obligatoire
+  deferredPrompt = e;
+
+  // Affiche le bouton
+  installBtn.style.display = "block";
+});
+
+/* 👆 Clic sur installer */
+installBtn.addEventListener("click", async () => {
+  if (!deferredPrompt) return;
+
+  deferredPrompt.prompt();
+
+  const { outcome } = await deferredPrompt.userChoice;
+
+  if (outcome === "accepted") {
+    console.log("PWA installée");
+  }
+
+  deferredPrompt = null;
+  installBtn.style.display = "none";
+});
+
+/* ✅ Cache le bouton si déjà installée */
+window.addEventListener("appinstalled", () => {
+  console.log("PWA déjà installée");
+  installBtn.style.display = "none";
+});
+
+if (window.matchMedia("(display-mode: standalone)").matches) {
+  // PWA déjà installée → ne rien afficher
+  const installBtn = document.getElementById("installPWA");
+  if (installBtn) installBtn.style.display = "none";
+}
+
 
 
 /* ===============================

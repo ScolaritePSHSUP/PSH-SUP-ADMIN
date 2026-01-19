@@ -610,3 +610,12 @@ body {
     margin: 0 auto;
   }
 }
+#installPWA {
+  margin-bottom: 1rem;
+  background: #047857;
+  color: white;
+}
+
+#installPWA:hover {
+  background: #065f46;
+}
