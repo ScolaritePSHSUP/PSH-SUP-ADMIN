@@ -13,15 +13,13 @@
   <!-- Manifest -->
   <link rel="manifest" href="/PSH-SUP-ADMIN/manifest.json">
 
-
   <title>PSH SUP – Administration</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <!-- Icons -->
-	<link rel="apple-touch-icon" href="/PSH-SUP-ADMIN/icons/apple-touch-icon.png">
-	<link rel="icon" sizes="192x192" href="/PSH-SUP-ADMIN/icons/icon-192.png">
-	<link rel="icon" sizes="512x512" href="/PSH-SUP-ADMIN/icons/icon-512.png">
-
+  <link rel="apple-touch-icon" href="/PSH-SUP-ADMIN/icons/apple-touch-icon.png">
+  <link rel="icon" sizes="192x192" href="/PSH-SUP-ADMIN/icons/icon-192.png">
+  <link rel="icon" sizes="512x512" href="/PSH-SUP-ADMIN/icons/icon-512.png">
 
   <!-- Styles -->
   <link rel="stylesheet" href="/PSH-SUP-ADMIN/style.css">
@@ -30,20 +28,23 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
-
 <body>
 
+<!-- HEADER -->
 <header class="header">
   <h1>Administration PSH SUP</h1>
   <p>Tableau de bord de gestion</p>
 </header>
 
-<button id="installPWA" class="btn-secondary" style="display:none;">
-  📲 Installer l’application
-</button>
+<!-- INSTALL PWA -->
+<center>
+  <button id="installPWA" class="btn-secondary" style="display:none;">
+    📲 Installer l’application
+  </button>
+</center>
 
+<!-- CONTENU -->
 <main class="page">
-
   <div class="grid">
 
     <a href="admin-actus.html" class="card">
@@ -77,7 +78,6 @@
     </a>
 
   </div>
-
 </main>
 
 <footer class="footer">
@@ -112,21 +112,18 @@ const supabaseClient = supabase.createClient(
 (async () => {
   const { data } = await supabaseClient.auth.getSession();
 
-  if (
-    !data.session ||
-    data.session.user.user_metadata.role !== "admin"
-  ) {
+  if (!data.session || data.session.user.user_metadata.role !== "admin") {
     window.location.href = "admin-login.html";
   }
 })();
 
-
-
-
+/* ===============================
+   📲 INSTALL PWA
+=============================== */
 let deferredPrompt;
 const installBtn = document.getElementById("installPWA");
 
-// Ne pas afficher si déjà installée
+// Déjà installée ?
 if (window.matchMedia("(display-mode: standalone)").matches) {
   installBtn.style.display = "none";
 }
@@ -134,19 +131,13 @@ if (window.matchMedia("(display-mode: standalone)").matches) {
 window.addEventListener("beforeinstallprompt", (e) => {
   e.preventDefault();
   deferredPrompt = e;
-
-  // Android attend souvent une interaction
-  setTimeout(() => {
-    installBtn.style.display = "block";
-  }, 500);
+  installBtn.style.display = "block";
 });
 
 installBtn.addEventListener("click", async () => {
   if (!deferredPrompt) return;
-
   deferredPrompt.prompt();
   await deferredPrompt.userChoice;
-
   deferredPrompt = null;
   installBtn.style.display = "none";
 });
@@ -154,13 +145,6 @@ installBtn.addEventListener("click", async () => {
 window.addEventListener("appinstalled", () => {
   installBtn.style.display = "none";
 });
-
-// Service worker
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("/PSH-SUP-ADMIN/admin-sw.js");
-}
-
-
 
 /* ===============================
    🚪 LOGOUT
@@ -170,22 +154,12 @@ document.getElementById("logout").addEventListener("click", async () => {
   window.location.href = "admin-login.html";
 });
 
-
 /* ===============================
-   📦 SERVICE WORKER (PWA)
+   ⚙️ SERVICE WORKER
 =============================== */
-
-const CACHE_NAME = "psh-admin-v6";
-const BASE_PATH = "/PSH-SUP-ADMIN";
-
-self.addEventListener("fetch", event => {
-  event.respondWith(
-    fetch(event.request).catch(() =>
-      fetch(`${BASE_PATH}/index.html`)
-    )
-  );
-});
-
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/PSH-SUP-ADMIN/admin-sw.js");
+}
 </script>
 
 </body>
