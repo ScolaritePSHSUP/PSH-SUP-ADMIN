@@ -1,0 +1,8 @@
+update auth.users
+set raw_user_meta_data = jsonb_set(
+  coalesce(raw_user_meta_data, '{}'::jsonb),
+  '{role}',
+  '"admin"',
+  true
+)
+where email = 'ATTENTION METTRE LE MAIL ICI';
