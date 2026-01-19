@@ -11,15 +11,17 @@
   <meta name="apple-mobile-web-app-title" content="PSH SUP – Admin">
 
   <!-- Manifest -->
-  <link rel="manifest" href="./admin-manifest.json">
+  <link rel="manifest" href="/PSH-SHUP-ADMIN/admin-manifest.json">
+
 
   <title>PSH SUP – Administration</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <!-- Icons -->
-  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
-  <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png">
+	<link rel="apple-touch-icon" href="/PSH-SHUP-ADMIN/icons/apple-touch-icon.png">
+	<link rel="icon" sizes="192x192" href="/PSH-SHUP-ADMIN/icons/icon-192.png">
+	<link rel="icon" sizes="512x512" href="/PSH-SHUP-ADMIN/icons/icon-512.png">
+
 
   <!-- Styles -->
   <link rel="stylesheet" href="/PSH-SHUP-ADMIN/style.css">
@@ -119,8 +121,9 @@ form.addEventListener("submit", async (e) => {
   window.location.href = "admin-dashboard.html";
 });
 
+
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("./admin-sw.js");
+  navigator.serviceWorker.register("/PSH-SHUP-ADMIN/admin-sw.js")
 }
 </script>
 
