@@ -245,14 +245,21 @@ window.editContact = async (id) => {
 window.deleteContact = async (id) => {
   if (!confirm("Supprimer ce contact ?")) return;
 
-  const { error } = await supabaseClient
+  const { data: sessionData } = await supabaseClient.auth.getSession();
+  console.log("Session:", sessionData?.session);
+
+  const { data, error, status } = await supabaseClient
     .from("contacts_administration")
     .delete()
-    .eq("id", id);
+    .eq("id", id)
+    .select(); // <-- important: force Supabase à renvoyer quelque chose
+
+  console.log("DELETE status:", status);
+  console.log("DELETE data:", data);
+  console.log("DELETE error:", error);
 
   if (error) {
-    console.error(error);
-    alert("Erreur suppression");
+    alert(`Erreur suppression: ${error.message}`);
     return;
   }
 
