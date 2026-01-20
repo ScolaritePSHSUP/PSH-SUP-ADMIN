@@ -93,8 +93,17 @@
 =============================== */
 const supabaseClient = supabase.createClient(
   "https://wqjzgpxcudobdbhtatgw.supabase.co",
-  "sb_publishable_RQyY6vwKpcQdlRVFvDVD-A_YybqqTS_"
+  "sb_publishable_RQyY6vwKpcQdlRVFvDVD-A_YybqqTS_",
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: false,
+      storage: window.localStorage
+    }
+  }
 );
+
 
 /* ===============================
    🔒 PROTECTION ADMIN
