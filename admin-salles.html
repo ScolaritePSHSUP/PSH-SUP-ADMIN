@@ -91,19 +91,9 @@
 /* ===============================
    🔐 SUPABASE CONFIG
 =============================== */
-const SUPABASE_URL = "https://wqjzgpxcudobdbhtatgw.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_RQyY6vwKpcQdlRVFvDVD-A_YybqqTS_";
-
 const supabaseClient = supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_ANON_KEY,
-  {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: false
-    }
-  }
+  "https://wqjzgpxcudobdbhtatgw.supabase.co",
+  "sb_publishable_RQyY6vwKpcQdlRVFvDVD-A_YybqqTS_"
 );
 
 /* ===============================
@@ -111,17 +101,13 @@ const supabaseClient = supabase.createClient(
 =============================== */
 (async () => {
   const { data } = await supabaseClient.auth.getSession();
-
-  if (
-    !data.session ||
-    data.session.user.user_metadata.role !== "admin"
-  ) {
+  if (!data.session || data.session.user.user_metadata.role !== "admin") {
     window.location.href = "admin-login.html";
   }
 })();
 
 /* ===============================
-   🧠 ÉTAT GLOBAL
+   🧠 ÉTAT
 =============================== */
 let editingSalleId = null;
 const msg = document.getElementById("formMessage");
@@ -131,40 +117,22 @@ const msg = document.getElementById("formMessage");
 =============================== */
 document.getElementById("salleForm").addEventListener("submit", async (e) => {
   e.preventDefault();
+
   msg.textContent = "";
   msg.style.color = "";
 
   const salle = {
-  numero: numero.value.trim(),
-  capacite: parseInt(capacite.value),
-  campus: campus.value,
-  equipements: equipements.value
-    ? { description: equipements.value.trim() }
-    : {}
-};
+    numero: numero.value.trim(),
+    capacite: Number(capacite.value),
+    campus: campus.value
+  };
 
-
-  /* ✅ VALIDATIONS */
   if (!salle.numero || !salle.capacite || !salle.campus) {
-    msg.textContent = "❌ Merci de remplir tous les champs obligatoires";
+    msg.textContent = "❌ Tous les champs sont obligatoires";
     msg.style.color = "#b23a2c";
     return;
   }
 
-  /* 🚫 ANTI-DOUBLON */
-  const { data: existing } = await supabaseClient
-    .from("salles")
-    .select("id")
-    .eq("numero", salle.numero)
-    .eq("campus", salle.campus);
-
-  if (existing.length && !editingSalleId) {
-    msg.textContent = "❌ Cette salle existe déjà pour ce campus";
-    msg.style.color = "#b23a2c";
-    return;
-  }
-
-  /* 💾 INSERT / UPDATE */
   const query = editingSalleId
     ? supabaseClient.from("salles").update(salle).eq("id", editingSalleId)
     : supabaseClient.from("salles").insert(salle);
@@ -173,12 +141,12 @@ document.getElementById("salleForm").addEventListener("submit", async (e) => {
 
   if (error) {
     console.error(error);
-    msg.textContent = "❌ Erreur lors de l’enregistrement";
+    msg.textContent = error.message;
     msg.style.color = "#b23a2c";
     return;
   }
 
-  msg.textContent = "✅ Salle enregistrée avec succès";
+  msg.textContent = "✅ Salle enregistrée";
   msg.style.color = "green";
 
   salleForm.reset();
@@ -204,17 +172,13 @@ async function loadAdminSalles() {
     return;
   }
 
-  const container = document.getElementById("adminSallesList");
-  container.innerHTML = "";
+  adminSallesList.innerHTML = "";
 
   data.forEach(salle => {
-    container.innerHTML += `
+    adminSallesList.innerHTML += `
       <div class="admin-actu-card">
         <h3>Salle ${salle.numero}</h3>
-        <small>
-          📍 ${salle.campus} • 👥 ${salle.capacite} places
-          ${salle.description ? `<br>📝 ${salle.description}` : ""}
-        </small>
+        <small>📍 ${salle.campus} • 👥 ${salle.capacite} places</small>
         <div class="admin-actions">
           <button onclick="editSalle('${salle.id}')">✏️</button>
           <button onclick="deleteSalle('${salle.id}')">🗑️</button>
@@ -226,21 +190,18 @@ async function loadAdminSalles() {
 loadAdminSalles();
 
 /* ===============================
-   ✏️ EDIT SALLE
+   ✏️ EDIT
 =============================== */
 window.editSalle = async (id) => {
-  const { data, error } = await supabaseClient
+  const { data } = await supabaseClient
     .from("salles")
     .select("*")
     .eq("id", id)
     .single();
 
-  if (error) return;
-
   numero.value = data.numero;
   capacite.value = data.capacite;
   campus.value = data.campus;
-  description.value = data.description || "";
 
   editingSalleId = id;
   cancelEdit.style.display = "block";
@@ -248,22 +209,10 @@ window.editSalle = async (id) => {
 };
 
 /* ===============================
-   🗑️ DELETE SALLE (PROTÉGÉ)
+   🗑️ DELETE
 =============================== */
 window.deleteSalle = async (id) => {
   if (!confirm("Supprimer cette salle ?")) return;
-
-  /* 🚫 Vérifie si utilisée */
-  const { data: used } = await supabaseClient
-    .from("reservations")
-    .select("id")
-    .eq("salle_id", id)
-    .limit(1);
-
-  if (used.length) {
-    alert("❌ Impossible : cette salle est utilisée dans des réservations");
-    return;
-  }
 
   const { error } = await supabaseClient
     .from("salles")
@@ -271,32 +220,12 @@ window.deleteSalle = async (id) => {
     .eq("id", id);
 
   if (error) {
-    alert("Erreur lors de la suppression");
+    alert("Erreur suppression");
     return;
   }
 
   loadAdminSalles();
 };
-
-/* ===============================
-   ❌ CANCEL EDIT
-=============================== */
-cancelEdit.onclick = () => {
-  salleForm.reset();
-  editingSalleId = null;
-  cancelEdit.style.display = "none";
-  document.querySelector(".btn-primary").textContent = "🏫 Ajouter la salle";
-};
-
-/* ===============================
-   🚪 LOGOUT
-=============================== */
-logout.onclick = async () => {
-  await supabaseClient.auth.signOut();
-  window.location.href = "admin-login.html";
-};
-
-
 </script>
 
 
