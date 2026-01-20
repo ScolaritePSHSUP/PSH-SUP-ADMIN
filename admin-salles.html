@@ -98,12 +98,10 @@ const supabaseClient = supabase.createClient(
     auth: {
       persistSession: true,
       autoRefreshToken: true,
-      detectSessionInUrl: false,
-      storage: window.localStorage
+      detectSessionInUrl: false
     }
   }
 );
-
 
 /* ===============================
    🔒 PROTECTION ADMIN
@@ -120,11 +118,13 @@ const supabaseClient = supabase.createClient(
 =============================== */
 let editingSalleId = null;
 const msg = document.getElementById("formMessage");
+const form = document.getElementById("salleForm");
+const container = document.getElementById("adminSallesList");
 
 /* ===============================
    🏫 SUBMIT SALLE
 =============================== */
-document.getElementById("salleForm").addEventListener("submit", async (e) => {
+form.addEventListener("submit", async (e) => {
   e.preventDefault();
 
   msg.textContent = "";
@@ -133,11 +133,12 @@ document.getElementById("salleForm").addEventListener("submit", async (e) => {
   const salle = {
     numero: numero.value.trim(),
     capacite: Number(capacite.value),
-    campus: campus.value
+    campus: campus.value,
+    equipements: equipements.value.trim() || null
   };
 
   if (!salle.numero || !salle.capacite || !salle.campus) {
-    msg.textContent = "❌ Tous les champs sont obligatoires";
+    msg.textContent = "❌ Tous les champs obligatoires doivent être remplis";
     msg.style.color = "#b23a2c";
     return;
   }
@@ -158,7 +159,7 @@ document.getElementById("salleForm").addEventListener("submit", async (e) => {
   msg.textContent = "✅ Salle enregistrée";
   msg.style.color = "green";
 
-  salleForm.reset();
+  form.reset();
   editingSalleId = null;
   cancelEdit.style.display = "none";
   document.querySelector(".btn-primary").textContent = "🏫 Ajouter la salle";
@@ -172,22 +173,25 @@ document.getElementById("salleForm").addEventListener("submit", async (e) => {
 async function loadAdminSalles() {
   const { data, error } = await supabaseClient
     .from("salles")
-    .select("*")
+    .select("id, numero, campus, capacite, equipements")
     .order("campus")
     .order("numero");
 
   if (error) {
-    console.error(error);
+    console.error("Erreur salles :", error);
     return;
   }
 
-  adminSallesList.innerHTML = "";
+  container.innerHTML = "";
 
   data.forEach(salle => {
-    adminSallesList.innerHTML += `
+    container.innerHTML += `
       <div class="admin-actu-card">
         <h3>Salle ${salle.numero}</h3>
-        <small>📍 ${salle.campus} • 👥 ${salle.capacite} places</small>
+        <small>
+          📍 ${salle.campus} • 👥 ${salle.capacite} places
+          ${salle.equipements ? `<br>🛠️ ${salle.equipements}` : ""}
+        </small>
         <div class="admin-actions">
           <button onclick="editSalle('${salle.id}')">✏️</button>
           <button onclick="deleteSalle('${salle.id}')">🗑️</button>
@@ -196,21 +200,25 @@ async function loadAdminSalles() {
     `;
   });
 }
+
 loadAdminSalles();
 
 /* ===============================
    ✏️ EDIT
 =============================== */
 window.editSalle = async (id) => {
-  const { data } = await supabaseClient
+  const { data, error } = await supabaseClient
     .from("salles")
     .select("*")
     .eq("id", id)
     .single();
 
+  if (error) return;
+
   numero.value = data.numero;
   capacite.value = data.capacite;
   campus.value = data.campus;
+  equipements.value = data.equipements || "";
 
   editingSalleId = id;
   cancelEdit.style.display = "block";
@@ -229,13 +237,22 @@ window.deleteSalle = async (id) => {
     .eq("id", id);
 
   if (error) {
-    alert("Erreur suppression");
+    alert("❌ Erreur lors de la suppression");
     return;
   }
 
   loadAdminSalles();
 };
+
+/* ===============================
+   🚪 LOGOUT
+=============================== */
+document.getElementById("logout").onclick = async () => {
+  await supabaseClient.auth.signOut();
+  window.location.href = "admin-login.html";
+};
 </script>
+
 
 
 </body>
