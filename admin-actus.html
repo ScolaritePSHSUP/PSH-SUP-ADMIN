@@ -203,18 +203,30 @@ loadAdminActus();
    ✏️ EDIT
 =============================== */
 window.editActu = async (id) => {
-  const { data } = await supabaseClient
+  const { data, error } = await supabaseClient
     .from("actualites")
     .select("*")
     .eq("id", id)
     .single();
 
-  document.getElementById("title").value = data.titre;
-  document.getElementById("content").value = data.contenu;
+  if (error) {
+    console.error(error);
+    alert("Erreur chargement actualité");
+    return;
+  }
+
+  // ✅ Champs EXISTANTS uniquement
+  document.getElementById("title").value = data.titre || "";
   document.getElementById("category").value = data.category || "";
+  document.getElementById("summary").value = data.contenu?.slice(0, 120) || "";
+  document.getElementById("content").value = data.contenu || "";
 
   editingActuId = id;
+
+  document.getElementById("cancelEdit").style.display = "block";
+  document.querySelector(".btn-primary").textContent = "💾 Mettre à jour";
 };
+
 
 /* ===============================
    🗑️ DELETE
@@ -229,12 +241,14 @@ window.deleteActu = async (id) => {
 
   if (error) {
     console.error(error);
-    alert("Erreur suppression");
+    alert("❌ Erreur lors de la suppression");
     return;
   }
 
+  alert("🗑️ Actualité supprimée");
   loadAdminActus();
 };
+
 
 /* ===============================
    🚪 LOGOUT
