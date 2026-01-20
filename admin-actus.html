@@ -139,30 +139,26 @@ let editingActuId = null;
 document.getElementById("actuForm").addEventListener("submit", async (e) => {
   e.preventDefault();
 
-  const payload = {
-    titre: document.getElementById("title").value.trim(),
-    contenu: document.getElementById("content").value.trim(),
-    campus: document.getElementById("campus")?.value || null,
-    publie: true,
-    created_by: currentUserId
-  };
+  const { data: sessionData } = await supabaseClient.auth.getSession();
+const userId = sessionData.session.user.id;
 
-  const query = editingActuId
-    ? supabaseClient
-        .from("actualites")
-        .update(payload)
-        .eq("id", editingActuId)
-    : supabaseClient
-        .from("actualites")
-        .insert(payload);
+const payload = {
+  titre: title.value.trim(),
+  contenu: content.value.trim(),
+  campus: campus.value || null,
+  publie: true,
+  created_by: userId
+};
 
-  const { error } = await query;
+const { error } = await supabaseClient
+  .from("actualites")
+  .insert(payload);
 
-  if (error) {
-    console.error(error);
-    alert("❌ Erreur lors de l’enregistrement");
-    return;
-  }
+if (error) {
+  console.error(error);
+  alert(error.message);
+}
+
 
   alert("✅ Actualité enregistrée");
   e.target.reset();
