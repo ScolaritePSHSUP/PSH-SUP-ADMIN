@@ -293,20 +293,6 @@ logout.onclick = async () => {
   window.location.href = "admin-login.html";
 };
 
-/* ===============================
-   📦 SERVICE WORKER (PWA)
-=============================== */
-
-const CACHE_NAME = "psh-admin-v6";
-const BASE_PATH = "/PSH-SUP-ADMIN";
-
-self.addEventListener("fetch", event => {
-  event.respondWith(
-    fetch(event.request).catch(() =>
-      fetch(`${BASE_PATH}/index.html`)
-    )
-  );
-});
 
 </script>
 
