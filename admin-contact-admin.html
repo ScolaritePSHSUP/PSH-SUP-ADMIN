@@ -13,15 +13,13 @@
   <!-- Manifest -->
   <link rel="manifest" href="/PSH-SUP-ADMIN/manifest.json">
 
-
   <title>PSH SUP – Administration</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <!-- Icons -->
-	<link rel="apple-touch-icon" href="/PSH-SUP-ADMIN/icons/apple-touch-icon.png">
-	<link rel="icon" sizes="192x192" href="/PSH-SUP-ADMIN/icons/icon-192.png">
-	<link rel="icon" sizes="512x512" href="/PSH-SUP-ADMIN/icons/icon-512.png">
-
+  <link rel="apple-touch-icon" href="/PSH-SUP-ADMIN/icons/apple-touch-icon.png">
+  <link rel="icon" sizes="192x192" href="/PSH-SUP-ADMIN/icons/icon-192.png">
+  <link rel="icon" sizes="512x512" href="/PSH-SUP-ADMIN/icons/icon-512.png">
 
   <!-- Styles -->
   <link rel="stylesheet" href="/PSH-SUP-ADMIN/style.css">
@@ -38,9 +36,7 @@
 </header>
 
 <center>
-  <a href="index.html" class="btn-secondary">
-    ⬅ Retour dashboard
-  </a>
+  <a href="index.html" class="btn-secondary">⬅ Retour dashboard</a>
 </center>
 
 <main class="admin-grid">
@@ -81,13 +77,6 @@
 
     <label>Téléphone</label>
     <input type="text" id="telephone">
-
-    <label>Campus</label>
-    <select id="campus" required>
-      <option value="">—</option>
-      <option value="Paris">Paris</option>
-      <option value="Molitor">Molitor</option>
-    </select>
 
     <label>Ordre d’affichage</label>
     <input type="number" id="ordre" min="1">
@@ -141,14 +130,10 @@ const supabaseClient = supabase.createClient(
 (async () => {
   const { data } = await supabaseClient.auth.getSession();
 
-  if (
-    !data.session ||
-    data.session.user.user_metadata.role !== "admin"
-  ) {
+  if (!data.session || data.session.user.user_metadata.role !== "admin") {
     window.location.href = "admin-login.html";
   }
 })();
-
 
 /* ===============================
    🧠 ÉTAT
@@ -169,15 +154,12 @@ document.getElementById("contactForm").addEventListener("submit", async (e) => {
     categorie: categorie.value,
     email: email.value.trim() || null,
     telephone: telephone.value.trim() || null,
-    campus: campus.value || null,
     ordre: ordre.value ? parseInt(ordre.value) : null,
     actif: actif.checked
   };
 
   const query = editingContactId
-    ? supabaseClient.from("contacts_administration")
-        .update(contact)
-        .eq("id", editingContactId)
+    ? supabaseClient.from("contacts_administration").update(contact).eq("id", editingContactId)
     : supabaseClient.from("contacts_administration").insert(contact);
 
   const { error } = await query;
@@ -220,7 +202,7 @@ async function loadAdminContacts() {
         <h3>${c.prenom} ${c.nom}</h3>
         <small>
           ${c.poste || ""}<br>
-          ${c.categorie} • ${c.campus || ""}
+          ${c.categorie}
         </small>
         <div class="admin-actions">
           <button onclick="editContact('${c.id}')">✏️</button>
@@ -249,7 +231,6 @@ window.editContact = async (id) => {
   categorie.value = data.categorie;
   email.value = data.email || "";
   telephone.value = data.telephone || "";
-  campus.value = data.campus || "";
   ordre.value = data.ordre || "";
   actif.checked = data.actif;
 
@@ -295,23 +276,6 @@ logout.onclick = async () => {
   await supabaseClient.auth.signOut();
   window.location.href = "admin-login.html";
 };
-
-
-/* ===============================
-   📦 SERVICE WORKER (PWA)
-=============================== */
-
-const CACHE_NAME = "psh-admin-v6";
-const BASE_PATH = "/PSH-SUP-ADMIN";
-
-self.addEventListener("fetch", event => {
-  event.respondWith(
-    fetch(event.request).catch(() =>
-      fetch(`${BASE_PATH}/index.html`)
-    )
-  );
-});
-
 </script>
 
 </body>
