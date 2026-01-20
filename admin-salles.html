@@ -62,8 +62,8 @@
       <option value="Molitor">Molitor</option>
     </select>
 
-    <label>Description (optionnelle)</label>
-    <textarea id="description" rows="3"></textarea>
+    <label>Équipements / remarques</label>
+	<textarea id="equipements" rows="3"></textarea>
 
     <button type="submit" class="btn-primary">
       🏫 Ajouter la salle
@@ -135,11 +135,14 @@ document.getElementById("salleForm").addEventListener("submit", async (e) => {
   msg.style.color = "";
 
   const salle = {
-    numero: numero.value.trim(),
-    capacite: parseInt(capacite.value),
-    campus: campus.value,
-    description: description.value.trim() || null
-  };
+  numero: numero.value.trim(),
+  capacite: parseInt(capacite.value),
+  campus: campus.value,
+  equipements: equipements.value
+    ? { description: equipements.value.trim() }
+    : {}
+};
+
 
   /* ✅ VALIDATIONS */
   if (!salle.numero || !salle.capacite || !salle.campus) {
