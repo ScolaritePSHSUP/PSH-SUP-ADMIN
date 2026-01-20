@@ -95,6 +95,19 @@
     ❌ Annuler modification
   </button>
 
+<section class="admin-list">
+  <h2>Contacts enregistrés</h2>
+
+  <input
+    type="text"
+    id="searchInput"
+    placeholder="🔍 Rechercher (nom, prénom, poste, catégorie...)"
+    class="admin-search"
+  >
+
+  <div id="adminContactsList"></div>
+</section>
+
   <!-- LISTE -->
   <section class="admin-list">
     <h2>Contacts enregistrés</h2>
@@ -136,9 +149,10 @@ const supabaseClient = supabase.createClient(
 })();
 
 /* ===============================
-   🧠 ÉTAT
+   🧠 ÉTAT GLOBAL
 =============================== */
 let editingContactId = null;
+let allContacts = [];
 
 /* ===============================
    👤 SUBMIT CONTACT
@@ -159,8 +173,13 @@ document.getElementById("contactForm").addEventListener("submit", async (e) => {
   };
 
   const query = editingContactId
-    ? supabaseClient.from("contacts_administration").update(contact).eq("id", editingContactId)
-    : supabaseClient.from("contacts_administration").insert(contact);
+    ? supabaseClient
+        .from("contacts_administration")
+        .update(contact)
+        .eq("id", editingContactId)
+    : supabaseClient
+        .from("contacts_administration")
+        .insert(contact);
 
   const { error } = await query;
 
@@ -170,7 +189,7 @@ document.getElementById("contactForm").addEventListener("submit", async (e) => {
     return;
   }
 
-  e.target.reset();
+  contactForm.reset();
   editingContactId = null;
   cancelEdit.style.display = "none";
   document.querySelector(".btn-primary").textContent = "👤 Ajouter le contact";
@@ -193,10 +212,23 @@ async function loadAdminContacts() {
     return;
   }
 
+  allContacts = data;
+  renderContacts(allContacts);
+}
+
+/* ===============================
+   🖥️ RENDER CONTACTS
+=============================== */
+function renderContacts(contacts) {
   const container = document.getElementById("adminContactsList");
   container.innerHTML = "";
 
-  data.forEach(c => {
+  if (contacts.length === 0) {
+    container.innerHTML = "<p>Aucun résultat</p>";
+    return;
+  }
+
+  contacts.forEach(c => {
     container.innerHTML += `
       <div class="admin-actu-card" data-id="${c.id}">
         <h3>${c.prenom} ${c.nom}</h3>
@@ -212,27 +244,38 @@ async function loadAdminContacts() {
     `;
   });
 }
-loadAdminContacts();
+
+/* ===============================
+   🔍 SEARCH
+=============================== */
+document.getElementById("searchInput").addEventListener("input", e => {
+  const query = e.target.value.toLowerCase().trim();
+
+  const filtered = allContacts.filter(c =>
+    `${c.prenom} ${c.nom} ${c.poste || ""} ${c.categorie}`
+      .toLowerCase()
+      .includes(query)
+  );
+
+  renderContacts(filtered);
+});
 
 /* ===============================
    ✏️ EDIT CONTACT
 =============================== */
 window.editContact = async (id) => {
-  const { data } = await supabaseClient
-    .from("contacts_administration")
-    .select("*")
-    .eq("id", id)
-    .single();
+  const contact = allContacts.find(c => c.id === id);
+  if (!contact) return;
 
-  civilite.value = data.civilite || "";
-  prenom.value = data.prenom;
-  nom.value = data.nom;
-  poste.value = data.poste || "";
-  categorie.value = data.categorie;
-  email.value = data.email || "";
-  telephone.value = data.telephone || "";
-  ordre.value = data.ordre || "";
-  actif.checked = data.actif;
+  civilite.value = contact.civilite || "";
+  prenom.value = contact.prenom;
+  nom.value = contact.nom;
+  poste.value = contact.poste || "";
+  categorie.value = contact.categorie;
+  email.value = contact.email || "";
+  telephone.value = contact.telephone || "";
+  ordre.value = contact.ordre || "";
+  actif.checked = contact.actif;
 
   editingContactId = id;
   cancelEdit.style.display = "block";
@@ -251,14 +294,13 @@ window.deleteContact = async (id) => {
     .eq("id", id);
 
   if (error) {
-    alert("Erreur suppression");
     console.error(error);
+    alert("Erreur suppression");
     return;
   }
 
   loadAdminContacts();
 };
-
 
 /* ===============================
    ❌ CANCEL EDIT
@@ -277,6 +319,11 @@ logout.onclick = async () => {
   await supabaseClient.auth.signOut();
   window.location.href = "admin-login.html";
 };
+
+/* ===============================
+   🚀 INIT
+=============================== */
+loadAdminContacts();
 </script>
 
 </body>
