@@ -245,26 +245,20 @@ window.editContact = async (id) => {
 window.deleteContact = async (id) => {
   if (!confirm("Supprimer ce contact ?")) return;
 
-  const { data: sessionData } = await supabaseClient.auth.getSession();
-  console.log("Session:", sessionData?.session);
-
-  const { data, error, status } = await supabaseClient
+  const { error } = await supabaseClient
     .from("contacts_administration")
     .delete()
-    .eq("id", id)
-    .select(); // <-- important: force Supabase à renvoyer quelque chose
-
-  console.log("DELETE status:", status);
-  console.log("DELETE data:", data);
-  console.log("DELETE error:", error);
+    .eq("id", id);
 
   if (error) {
-    alert(`Erreur suppression: ${error.message}`);
+    alert("Erreur suppression");
+    console.error(error);
     return;
   }
 
   loadAdminContacts();
 };
+
 
 /* ===============================
    ❌ CANCEL EDIT
