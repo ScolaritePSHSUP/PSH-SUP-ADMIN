@@ -140,31 +140,31 @@ document.getElementById("actuForm").addEventListener("submit", async (e) => {
   e.preventDefault();
 
   const { data: sessionData } = await supabaseClient.auth.getSession();
-const userId = sessionData.session.user.id;
+  const userId = sessionData.session.user.id;
 
-const payload = {
-  titre: title.value.trim(),
-  contenu: content.value.trim(),
-  category: category.value || null,
-  publie: true,
-  created_by: userId
-};
+  const payload = {
+    titre: title.value.trim(),
+    contenu: content.value.trim(),
+    category: category.value, // ✅ JAMAIS null
+    publie: true,
+    created_by: userId
+  };
 
-const { error } = await supabaseClient
-  .from("actualites")
-  .insert(payload);
+  const { error } = await supabaseClient
+    .from("actualites")
+    .insert(payload);
 
-if (error) {
-  console.error(error);
-  alert(error.message);
-}
-
+  if (error) {
+    console.error(error);
+    alert(error.message);
+    return;
+  }
 
   alert("✅ Actualité enregistrée");
   e.target.reset();
-  editingActuId = null;
   loadAdminActus();
 });
+
 
 /* ===============================
    📋 LOAD ACTUS
@@ -184,17 +184,18 @@ async function loadAdminActus() {
   container.innerHTML = "";
 
   data.forEach(actu => {
-    container.innerHTML += `
-      <div class="admin-actu-card">
-        <h3>${actu.titre}</h3>
-        <small>${actu.campus || ""}</small>
-        <div class="admin-actions">
-          <button onclick="editActu('${actu.id}')">✏️</button>
-          <button onclick="deleteActu('${actu.id}')">🗑️</button>
-        </div>
+  container.innerHTML += `
+    <div class="admin-actu-card">
+      <h3>${actu.titre}</h3>
+      <small>${actu.category}</small>
+      <div class="admin-actions">
+        <button onclick="editActu('${actu.id}')">✏️</button>
+        <button onclick="deleteActu('${actu.id}')">🗑️</button>
       </div>
-    `;
-  });
+    </div>
+  `;
+});
+
 }
 loadAdminActus();
 
@@ -210,7 +211,7 @@ window.editActu = async (id) => {
 
   document.getElementById("title").value = data.titre;
   document.getElementById("content").value = data.contenu;
-  document.getElementById("campus").value = data.campus || "";
+  document.getElementById("category").value = data.category || "";
 
   editingActuId = id;
 };
