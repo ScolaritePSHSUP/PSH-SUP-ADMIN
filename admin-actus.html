@@ -129,7 +129,7 @@ let currentUserId = null;
 })();
 
 /* ===============================
-   🧠 ÉTAT
+   🧠 ÉTAT GLOBAL
 =============================== */
 let editingActuId = null;
 
@@ -140,9 +140,9 @@ document.getElementById("actuForm").addEventListener("submit", async (e) => {
   e.preventDefault();
 
   const payload = {
-    titre: title.value.trim(),
-    category: category.value,
-    contenu: content.value.trim(),
+    titre: document.getElementById("title").value.trim(),
+    category: document.getElementById("category").value,
+    contenu: document.getElementById("content").value.trim(),
     publie: true
   };
 
@@ -169,7 +169,10 @@ document.getElementById("actuForm").addEventListener("submit", async (e) => {
     return;
   }
 
-  alert(editingActuId ? "✏️ Actualité mise à jour" : "✅ Actualité publiée");
+  alert(editingActuId
+    ? "✏️ Actualité mise à jour"
+    : "✅ Actualité publiée"
+  );
 
   // RESET
   e.target.reset();
@@ -179,8 +182,6 @@ document.getElementById("actuForm").addEventListener("submit", async (e) => {
 
   loadAdminActus();
 });
-
-
 
 /* ===============================
    📋 LOAD ACTUS
@@ -200,23 +201,22 @@ async function loadAdminActus() {
   container.innerHTML = "";
 
   data.forEach(actu => {
-  container.innerHTML += `
-    <div class="admin-actu-card">
-      <h3>${actu.titre}</h3>
-      <small>${actu.category}</small>
-      <div class="admin-actions">
-        <button onclick="editActu('${actu.id}')">✏️</button>
-        <button onclick="deleteActu('${actu.id}')">🗑️</button>
+    container.innerHTML += `
+      <div class="admin-actu-card">
+        <h3>${actu.titre}</h3>
+        <small>${actu.category}</small>
+        <div class="admin-actions">
+          <button onclick="editActu('${actu.id}')">✏️</button>
+          <button onclick="deleteActu('${actu.id}')">🗑️</button>
+        </div>
       </div>
-    </div>
-  `;
-});
-
+    `;
+  });
 }
 loadAdminActus();
 
 /* ===============================
-   ✏️ EDIT
+   ✏️ EDIT ACTU
 =============================== */
 window.editActu = async (id) => {
   const { data, error } = await supabaseClient
@@ -227,14 +227,12 @@ window.editActu = async (id) => {
 
   if (error) {
     console.error(error);
-    alert("Erreur chargement actualité");
+    alert("❌ Erreur chargement actualité");
     return;
   }
 
-  // ✅ Champs EXISTANTS uniquement
   document.getElementById("title").value = data.titre || "";
   document.getElementById("category").value = data.category || "";
-  document.getElementById("summary").value = data.contenu?.slice(0, 120) || "";
   document.getElementById("content").value = data.contenu || "";
 
   editingActuId = id;
@@ -243,9 +241,8 @@ window.editActu = async (id) => {
   document.querySelector(".btn-primary").textContent = "💾 Mettre à jour";
 };
 
-
 /* ===============================
-   🗑️ DELETE
+   🗑️ DELETE ACTU
 =============================== */
 window.deleteActu = async (id) => {
   if (!confirm("Supprimer cette actualité ?")) return;
@@ -265,6 +262,15 @@ window.deleteActu = async (id) => {
   loadAdminActus();
 };
 
+/* ===============================
+   ❌ CANCEL EDIT
+=============================== */
+document.getElementById("cancelEdit").onclick = () => {
+  document.getElementById("actuForm").reset();
+  editingActuId = null;
+  document.getElementById("cancelEdit").style.display = "none";
+  document.querySelector(".btn-primary").textContent = "📢 Publier";
+};
 
 /* ===============================
    🚪 LOGOUT
@@ -274,6 +280,7 @@ document.getElementById("logout").onclick = async () => {
   window.location.href = "admin-login.html";
 };
 </script>
+
 
 
 </body>
