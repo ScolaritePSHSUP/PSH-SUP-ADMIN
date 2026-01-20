@@ -182,6 +182,11 @@ async function loadAdminEvents() {
   const container = document.getElementById("adminEventsList");
   container.innerHTML = "";
 
+  if (!data || data.length === 0) {
+    container.innerHTML = "<p>Aucun événement</p>";
+    return;
+  }
+
   data.forEach(event => {
     container.innerHTML += `
       <div class="admin-actu-card">
@@ -265,6 +270,7 @@ document.getElementById("logout").onclick = async () => {
   window.location.href = "admin-login.html";
 };
 </script>
+
 
 
 </body>
