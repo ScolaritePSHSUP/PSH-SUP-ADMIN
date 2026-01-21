@@ -646,3 +646,99 @@ body {
   border-color: var(--primary);
   box-shadow: 0 0 0 2px rgba(178, 58, 44, 0.25);
 }
+/* =========================
+   RÉSERVATIONS ADMIN
+========================= */
+
+.reservations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.reservation-card {
+  background: white;
+  border-radius: 14px;
+  padding: 1rem 1.2rem;
+  border: 1px solid var(--accent);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+}
+
+.reservation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.6rem;
+  font-size: 1rem;
+}
+
+.reservation-body p {
+  margin: 0.25rem 0;
+  font-size: 0.9rem;
+}
+
+.reservation-body .motif {
+  margin-top: 0.4rem;
+  font-style: italic;
+  color: #374151;
+}
+
+.reservation-actions {
+  margin-top: 0.8rem;
+  display: flex;
+  gap: 0.6rem;
+  justify-content: flex-end;
+}
+
+/* Badges */
+.badge {
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: white;
+}
+
+.badge-pending {
+  background: #facc15;
+  color: #78350f;
+}
+
+.badge-approved {
+  background: #22c55e;
+}
+
+.badge-refused {
+  background: #ef4444;
+}
+
+/* Boutons */
+.btn-success {
+  background: #22c55e;
+  color: white;
+  border: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.btn-danger {
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.btn-success:hover,
+.btn-danger:hover {
+  opacity: 0.9;
+}
+
+.muted {
+  color: #9ca3af;
+  font-size: 0.85rem;
+}
