@@ -59,6 +59,8 @@
 <button id="logout" class="btn-logout-floating">🚪</button>
 
 <script>
+document.addEventListener("DOMContentLoaded", () => {
+
 /* ===============================
    🔐 SUPABASE CONFIG
 =============================== */
@@ -82,17 +84,60 @@ const supabaseClient = supabase.createClient(
 =============================== */
 (async () => {
   const { data } = await supabaseClient.auth.getSession();
-
   if (!data.session || data.session.user.user_metadata.role !== "admin") {
     window.location.href = "admin-login.html";
   }
 })();
 
 /* ===============================
-   📋 LOAD RÉSERVATIONS
+   🧩 HELPERS
+=============================== */
+const el = (id) => document.getElementById(id);
+
+function normalizeStatus(r) {
+  // priorité à la colonne "status" (pending/approved/refused)
+  if (r.status) return r.status;
+
+  // fallback sur "statut" (en attente / validée / refusée)
+  const s = (r.statut || "").toLowerCase().trim();
+  if (s.includes("attente")) return "pending";
+  if (s.includes("valid")) return "approved";
+  if (s.includes("refus")) return "refused";
+  return "pending";
+}
+
+function labelStatus(code) {
+  return {
+    pending: "En attente",
+    approved: "Validée",
+    refused: "Refusée"
+  }[code] || "En attente";
+}
+
+function badgeClass(code) {
+  return {
+    pending: "badge-pending",
+    approved: "badge-approved",
+    refused: "badge-refused"
+  }[code] || "badge-pending";
+}
+
+/* ===============================
+   🧠 ÉTAT GLOBAL
+=============================== */
+let allReservations = [];
+
+/* ===============================
+   📥 LOAD RESERVATIONS
 =============================== */
 async function loadReservations() {
-  const container = document.getElementById("reservationsList");
+  const container = el("reservationsList");
+  if (!container) {
+    console.error("❌ #reservationsList introuvable dans le HTML");
+    return;
+  }
+
+  container.innerHTML = "<p style='text-align:center;color:#6b7280;'>Chargement…</p>";
 
   const { data, error } = await supabaseClient
     .from("reservations_salles")
@@ -100,59 +145,104 @@ async function loadReservations() {
     .order("created_at", { ascending: false });
 
   if (error) {
-    container.innerHTML = `<p style="color:red;text-align:center;">Erreur de chargement</p>`;
+    console.error("Erreur chargement reservations_salles:", error);
+    container.innerHTML = "<p style='text-align:center;color:red;'>Erreur de chargement</p>";
     return;
   }
 
-  if (!data || data.length === 0) {
-    container.innerHTML = `
-      <p style="text-align:center;color:#6b7280;">
-        Aucune réservation
-      </p>`;
+  allReservations = (data || []).map(r => ({ ...r, _status: normalizeStatus(r) }));
+  fillSalleFilter();
+  applyFilters();
+}
+
+/* ===============================
+   🏫 FILTRE SALLES
+=============================== */
+function fillSalleFilter() {
+  const select = el("filterSalle");
+  if (!select) {
+    console.error("❌ #filterSalle introuvable dans le HTML");
     return;
   }
 
+  const salles = [...new Set(allReservations.map(r => String(r.salle_numero)))]
+    .filter(Boolean)
+    .sort((a, b) => a.localeCompare(b));
+
+  select.innerHTML =
+    `<option value="all">Toutes les salles</option>` +
+    salles.map(s => `<option value="${s}">Salle ${s}</option>`).join("");
+}
+
+/* ===============================
+   🔍 APPLY FILTERS
+=============================== */
+function applyFilters() {
+  const statusEl = el("filterStatus");
+  const salleEl  = el("filterSalle");
+  const dateEl   = el("filterDate");
+
+  if (!statusEl || !salleEl || !dateEl) {
+    console.error("❌ Un ou plusieurs filtres manquent (#filterStatus, #filterSalle, #filterDate)");
+    return;
+  }
+
+  const status = statusEl.value;     // pending/approved/refused/all
+  const salle  = salleEl.value;      // "001" ou "all"
+  const date   = dateEl.value;       // "YYYY-MM-DD" ou ""
+
+  let filtered = [...allReservations];
+
+  if (status !== "all") {
+    filtered = filtered.filter(r => r._status === status);
+  }
+
+  if (salle !== "all") {
+    filtered = filtered.filter(r => String(r.salle_numero) === String(salle));
+  }
+
+  if (date) {
+    filtered = filtered.filter(r => r.jour === date);
+  }
+
+  renderReservations(filtered);
+}
+
+/* ===============================
+   🧾 RENDER
+=============================== */
+function renderReservations(list) {
+  const container = el("reservationsList");
   container.innerHTML = "";
 
-  data.forEach(r => {
-    const badgeClass = {
-      pending: "badge-pending",
-      approved: "badge-approved",
-      refused: "badge-refused"
-    }[r.status];
+  if (!list.length) {
+    container.innerHTML = "<p style='text-align:center;color:#6b7280;'>Aucune réservation</p>";
+    return;
+  }
 
-    const badgeLabel = {
-      pending: "En attente",
-      approved: "Validée",
-      refused: "Refusée"
-    }[r.status];
+  list.forEach(r => {
+    const statusCode = r._status;
 
     container.innerHTML += `
       <div class="reservation-card">
         <div class="reservation-header">
           <strong>Salle ${r.salle_numero}</strong>
-          <span class="badge ${badgeClass}">${badgeLabel}</span>
+          <span class="badge ${badgeClass(statusCode)}">${labelStatus(statusCode)}</span>
         </div>
 
         <div class="reservation-body">
           <p>📅 <strong>${r.jour}</strong></p>
-          <p>⏰ ${r.heure_debut.slice(0,5)} – ${r.heure_fin.slice(0,5)}</p>
+          <p>⏰ ${String(r.heure_debut).slice(0,5)} – ${String(r.heure_fin).slice(0,5)}</p>
           <p>👤 ${r.nom} – ${r.classe}</p>
           <p class="motif">📝 ${r.motif}</p>
         </div>
 
         <div class="reservation-actions">
           ${
-            r.status === "pending"
+            statusCode === "pending"
               ? `
-                <button class="btn-success"
-                        onclick="updateStatus('${r.id}', 'approved')">
-                  ✔ Valider
-                </button>
-                <button class="btn-danger"
-                        onclick="updateStatus('${r.id}', 'refused')">
-                  ✖ Refuser
-                </button>
+                <button class="btn-success" data-id="${r.id}" data-status="approved">✔ Valider</button>
+                <button class="btn-danger"  data-id="${r.id}" data-status="refused">✖ Refuser</button>
               `
               : `<span class="muted">—</span>`
           }
@@ -160,47 +250,69 @@ async function loadReservations() {
       </div>
     `;
   });
+
+  // bind actions
+  document.querySelectorAll(".reservation-actions button[data-id]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const id = btn.dataset.id;
+      const status = btn.dataset.status;
+      await updateStatus(id, status);
+    });
+  });
 }
 
-
 /* ===============================
-   ✅ / ❌ UPDATE STATUS
+   ✅ UPDATE STATUS
 =============================== */
 async function updateStatus(id, status) {
-  const confirmMsg =
-    status === "approved"
-      ? "Valider cette réservation ?"
-      : "Refuser cette réservation ?";
-
-  if (!confirm(confirmMsg)) return;
-
   const { error } = await supabaseClient
     .from("reservations_salles")
-    .update({ status })
+    .update({
+      status,               // colonne technique
+      statut: labelStatus(status)  // colonne lisible si tu la gardes
+    })
     .eq("id", id);
 
   if (error) {
-    alert("Erreur lors de la mise à jour");
     console.error(error);
+    alert("Erreur lors de la mise à jour");
     return;
   }
 
-  loadReservations();
+  await loadReservations();
 }
 
 /* ===============================
-   🚪 LOGOUT
+   🎛️ EVENTS FILTRES
 =============================== */
-document.getElementById("logout").addEventListener("click", async () => {
-  await supabaseClient.auth.signOut();
-  window.location.href = "admin-login.html";
-});
+const statusEl = el("filterStatus");
+const salleEl  = el("filterSalle");
+const dateEl   = el("filterDate");
+const resetBtn = el("filterReset");
+
+if (statusEl) statusEl.addEventListener("change", applyFilters);
+if (salleEl)  salleEl.addEventListener("change", applyFilters);
+if (dateEl)   dateEl.addEventListener("change", applyFilters);
+
+if (resetBtn) {
+  resetBtn.addEventListener("click", () => {
+    if (statusEl) statusEl.value = "all";
+    if (salleEl)  salleEl.value = "all";
+    if (dateEl)   dateEl.value = "";
+    applyFilters();
+  });
+} else {
+  console.warn("⚠️ #filterReset absent (pas grave, mais le reset ne marchera pas)");
+}
 
 /* ===============================
    🚀 INIT
 =============================== */
 loadReservations();
+
+});
 </script>
+
 
 </body>
 </html>
