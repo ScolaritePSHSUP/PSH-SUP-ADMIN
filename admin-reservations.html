@@ -6,41 +6,53 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
+  <!-- Styles -->
   <link rel="stylesheet" href="/PSH-SUP-ADMIN/style.css">
+
+  <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
 
 <header class="header">
-  <h1>Admin – Réservations de salles</h1>
-  <p>Validation des demandes</p>
+  <h1>Réservations de salles</h1>
+  <p>Validation et gestion des demandes</p>
 </header>
 
-<center>
-  <a href="index.html" class="btn-secondary">⬅ Retour dashboard</a>
-</center>
+<main class="page">
 
-<main class="admin-grid">
+  <section class="card">
+    <h2>📋 Demandes de réservation</h2>
 
-  <!-- FILTRES -->
-  <section class="admin-list">
-    <h2>Filtres</h2>
-
-    <div class="admin-filters">
-      <button onclick="setFilter('pending')" class="btn-primary">⏳ En attente</button>
-      <button onclick="setFilter('approved')" class="btn-secondary">✅ Validées</button>
-      <button onclick="setFilter('refused')" class="btn-secondary">❌ Refusées</button>
-    </div>
-  </section>
-
-  <!-- LISTE -->
-  <section class="admin-list">
-    <h2>Réservations</h2>
-    <div id="adminReservationsList"></div>
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Salle</th>
+          <th>Date</th>
+          <th>Heure</th>
+          <th>Nom</th>
+          <th>Classe</th>
+          <th>Motif</th>
+          <th>Statut</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="reservationsTable">
+        <tr>
+          <td colspan="8" style="text-align:center;color:#6b7280;">
+            Chargement des réservations…
+          </td>
+        </tr>
+      </tbody>
+    </table>
   </section>
 
 </main>
+
+<footer class="footer">
+  © PSH SUP – Administration – 2026
+</footer>
 
 <button id="logout" class="btn-logout-floating">🚪</button>
 
@@ -68,89 +80,104 @@ const supabaseClient = supabase.createClient(
 =============================== */
 (async () => {
   const { data } = await supabaseClient.auth.getSession();
+
   if (!data.session || data.session.user.user_metadata.role !== "admin") {
     window.location.href = "admin-login.html";
   }
 })();
 
 /* ===============================
-   🧠 ÉTAT
-=============================== */
-let currentFilter = "pending";
-
-/* ===============================
-   🔎 LOAD RESERVATIONS
+   📋 LOAD RÉSERVATIONS
 =============================== */
 async function loadReservations() {
+  const tbody = document.getElementById("reservationsTable");
+
   const { data, error } = await supabaseClient
     .from("reservations_salles")
     .select("*")
-    .eq("status", currentFilter)
-    .order("jour", { ascending: true })
-    .order("heure_debut");
+    .order("created_at", { ascending: false });
 
-  const container = document.getElementById("adminReservationsList");
-  container.innerHTML = "";
-
-  if (error || !data.length) {
-    container.innerHTML = "<p>Aucune réservation</p>";
+  if (error) {
+    console.error(error);
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="8" style="color:red;text-align:center;">
+          Erreur de chargement
+        </td>
+      </tr>`;
     return;
   }
 
-  data.forEach(r => {
-    container.innerHTML += `
-      <div class="admin-actu-card">
-        <h3>${r.nom} – ${r.classe}</h3>
-        <small>
-          Salle ${r.salle_numero}<br>
-          📅 ${r.jour}<br>
-          ⏰ ${r.heure_debut} → ${r.heure_fin}<br>
-          ✉️ ${r.email || "—"}<br>
-          📝 ${r.motif || "—"}<br>
-          Statut : <strong>${r.status}</strong>
-        </small>
+  if (!data || data.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="8" style="text-align:center;color:#6b7280;">
+          Aucune réservation
+        </td>
+      </tr>`;
+    return;
+  }
 
-        ${
-          r.status === "pending"
-            ? `<div class="admin-actions">
-                <button onclick="approveReservation('${r.id}')">✅ Valider</button>
-                <button onclick="rejectReservation('${r.id}')">❌ Refuser</button>
-              </div>`
-            : ""
-        }
-      </div>
+  tbody.innerHTML = "";
+
+  data.forEach(r => {
+    const statutLabel = {
+      pending: "🟡 En attente",
+      approved: "✅ Validée",
+      refused: "❌ Refusée"
+    }[r.status];
+
+    tbody.innerHTML += `
+      <tr>
+        <td><strong>${r.salle_numero}</strong></td>
+        <td>${r.jour}</td>
+        <td>${r.heure_debut.slice(0,5)} – ${r.heure_fin.slice(0,5)}</td>
+        <td>${r.nom}</td>
+        <td>${r.classe}</td>
+        <td style="max-width:220px;">${r.motif}</td>
+        <td>${statutLabel}</td>
+        <td>
+          ${
+            r.status === "pending"
+              ? `
+                <button class="btn-small btn-success"
+                        onclick="updateStatus('${r.id}', 'approved')">
+                  Valider
+                </button>
+                <button class="btn-small btn-danger"
+                        onclick="updateStatus('${r.id}', 'refused')">
+                  Refuser
+                </button>
+              `
+              : "—"
+          }
+        </td>
+      </tr>
     `;
   });
 }
 
 /* ===============================
-   🎛️ FILTRES
+   ✅ / ❌ UPDATE STATUS
 =============================== */
-function setFilter(status) {
-  currentFilter = status;
-  loadReservations();
-}
+async function updateStatus(id, status) {
+  const confirmMsg =
+    status === "approved"
+      ? "Valider cette réservation ?"
+      : "Refuser cette réservation ?";
 
-/* ===============================
-   ✅ APPROUVER
-=============================== */
-async function approveReservation(id) {
-  await supabaseClient
+  if (!confirm(confirmMsg)) return;
+
+  const { error } = await supabaseClient
     .from("reservations_salles")
-    .update({ status: "approved" })
+    .update({ status })
     .eq("id", id);
 
-  loadReservations();
-}
-
-/* ===============================
-   ❌ REFUSER
-=============================== */
-async function rejectReservation(id) {
-  await supabaseClient
-    .from("reservations_salles")
-    .update({ status: "refused" })
-    .eq("id", id);
+  if (error) {
+    alert("Erreur lors de la mise à jour");
+    console.error(error);
+    return;
+  }
 
   loadReservations();
 }
@@ -158,10 +185,10 @@ async function rejectReservation(id) {
 /* ===============================
    🚪 LOGOUT
 =============================== */
-logout.onclick = async () => {
+document.getElementById("logout").addEventListener("click", async () => {
   await supabaseClient.auth.signOut();
   window.location.href = "admin-login.html";
-};
+});
 
 /* ===============================
    🚀 INIT
