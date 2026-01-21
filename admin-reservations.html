@@ -22,31 +22,15 @@
 
 <main class="page">
 
-  <section class="card">
-    <h2>📋 Demandes de réservation</h2>
+	  <section class="card">
+	  <h2>📋 Demandes de réservation</h2>
+	  <div id="reservationsList" class="reservations-list">
+		<p style="color:#6b7280;text-align:center;">
+		  Chargement des réservations…
+		</p>
+	  </div>
+	</section>
 
-    <table class="admin-table">
-      <thead>
-        <tr>
-          <th>Salle</th>
-          <th>Date</th>
-          <th>Heure</th>
-          <th>Nom</th>
-          <th>Classe</th>
-          <th>Motif</th>
-          <th>Statut</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody id="reservationsTable">
-        <tr>
-          <td colspan="8" style="text-align:center;color:#6b7280;">
-            Chargement des réservations…
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </section>
 
 </main>
 
@@ -90,7 +74,7 @@ const supabaseClient = supabase.createClient(
    📋 LOAD RÉSERVATIONS
 =============================== */
 async function loadReservations() {
-  const tbody = document.getElementById("reservationsTable");
+  const container = document.getElementById("reservationsList");
 
   const { data, error } = await supabaseClient
     .from("reservations_salles")
@@ -98,64 +82,68 @@ async function loadReservations() {
     .order("created_at", { ascending: false });
 
   if (error) {
-    console.error(error);
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="8" style="color:red;text-align:center;">
-          Erreur de chargement
-        </td>
-      </tr>`;
+    container.innerHTML = `<p style="color:red;text-align:center;">Erreur de chargement</p>`;
     return;
   }
 
   if (!data || data.length === 0) {
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="8" style="text-align:center;color:#6b7280;">
-          Aucune réservation
-        </td>
-      </tr>`;
+    container.innerHTML = `
+      <p style="text-align:center;color:#6b7280;">
+        Aucune réservation
+      </p>`;
     return;
   }
 
-  tbody.innerHTML = "";
+  container.innerHTML = "";
 
   data.forEach(r => {
-    const statutLabel = {
-      pending: "🟡 En attente",
-      approved: "✅ Validée",
-      refused: "❌ Refusée"
+    const badgeClass = {
+      pending: "badge-pending",
+      approved: "badge-approved",
+      refused: "badge-refused"
     }[r.status];
 
-    tbody.innerHTML += `
-      <tr>
-        <td><strong>${r.salle_numero}</strong></td>
-        <td>${r.jour}</td>
-        <td>${r.heure_debut.slice(0,5)} – ${r.heure_fin.slice(0,5)}</td>
-        <td>${r.nom}</td>
-        <td>${r.classe}</td>
-        <td style="max-width:220px;">${r.motif}</td>
-        <td>${statutLabel}</td>
-        <td>
+    const badgeLabel = {
+      pending: "En attente",
+      approved: "Validée",
+      refused: "Refusée"
+    }[r.status];
+
+    container.innerHTML += `
+      <div class="reservation-card">
+        <div class="reservation-header">
+          <strong>Salle ${r.salle_numero}</strong>
+          <span class="badge ${badgeClass}">${badgeLabel}</span>
+        </div>
+
+        <div class="reservation-body">
+          <p>📅 <strong>${r.jour}</strong></p>
+          <p>⏰ ${r.heure_debut.slice(0,5)} – ${r.heure_fin.slice(0,5)}</p>
+          <p>👤 ${r.nom} – ${r.classe}</p>
+          <p class="motif">📝 ${r.motif}</p>
+        </div>
+
+        <div class="reservation-actions">
           ${
             r.status === "pending"
               ? `
-                <button class="btn-small btn-success"
+                <button class="btn-success"
                         onclick="updateStatus('${r.id}', 'approved')">
-                  Valider
+                  ✔ Valider
                 </button>
-                <button class="btn-small btn-danger"
+                <button class="btn-danger"
                         onclick="updateStatus('${r.id}', 'refused')">
-                  Refuser
+                  ✖ Refuser
                 </button>
               `
-              : "—"
+              : `<span class="muted">—</span>`
           }
-        </td>
-      </tr>
+        </div>
+      </div>
     `;
   });
 }
+
 
 /* ===============================
    ✅ / ❌ UPDATE STATUS
