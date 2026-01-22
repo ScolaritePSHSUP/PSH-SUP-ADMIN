@@ -95,12 +95,8 @@ const supabaseClient = supabase.createClient(
 const el = (id) => document.getElementById(id);
 
 function normalizeStatus(r) {
-  // priorité à la colonne "status" (pending/approved/refused)
   if (r.status) return r.status;
-
-  // fallback sur "statut" (en attente / validée / refusée)
-  const s = (r.statut || "").toLowerCase().trim();
-  if (s.includes("attente")) return "pending";
+  const s = (r.statut || "").toLowerCase();
   if (s.includes("valid")) return "approved";
   if (s.includes("refus")) return "refused";
   return "pending";
@@ -132,12 +128,7 @@ let allReservations = [];
 =============================== */
 async function loadReservations() {
   const container = el("reservationsList");
-  if (!container) {
-    console.error("❌ #reservationsList introuvable dans le HTML");
-    return;
-  }
-
-  container.innerHTML = "<p style='text-align:center;color:#6b7280;'>Chargement…</p>";
+  container.innerHTML = "Chargement…";
 
   const { data, error } = await supabaseClient
     .from("reservations_salles")
@@ -145,12 +136,16 @@ async function loadReservations() {
     .order("created_at", { ascending: false });
 
   if (error) {
-    console.error("Erreur chargement reservations_salles:", error);
-    container.innerHTML = "<p style='text-align:center;color:red;'>Erreur de chargement</p>";
+    console.error(error);
+    container.innerHTML = "Erreur de chargement";
     return;
   }
 
-  allReservations = (data || []).map(r => ({ ...r, _status: normalizeStatus(r) }));
+  allReservations = (data || []).map(r => ({
+    ...r,
+    _status: normalizeStatus(r)
+  }));
+
   fillSalleFilter();
   applyFilters();
 }
@@ -160,11 +155,6 @@ async function loadReservations() {
 =============================== */
 function fillSalleFilter() {
   const select = el("filterSalle");
-  if (!select) {
-    console.error("❌ #filterSalle introuvable dans le HTML");
-    return;
-  }
-
   const salles = [...new Set(allReservations.map(r => String(r.salle_numero)))]
     .filter(Boolean)
     .sort((a, b) => a.localeCompare(b));
@@ -178,18 +168,9 @@ function fillSalleFilter() {
    🔍 APPLY FILTERS
 =============================== */
 function applyFilters() {
-  const statusEl = el("filterStatus");
-  const salleEl  = el("filterSalle");
-  const dateEl   = el("filterDate");
-
-  if (!statusEl || !salleEl || !dateEl) {
-    console.error("❌ Un ou plusieurs filtres manquent (#filterStatus, #filterSalle, #filterDate)");
-    return;
-  }
-
-  const status = statusEl.value;     // pending/approved/refused/all
-  const salle  = salleEl.value;      // "001" ou "all"
-  const date   = dateEl.value;       // "YYYY-MM-DD" ou ""
+  const status = el("filterStatus").value;
+  const salle  = el("filterSalle").value;
+  const date   = el("filterDate").value;
 
   let filtered = [...allReservations];
 
@@ -198,7 +179,7 @@ function applyFilters() {
   }
 
   if (salle !== "all") {
-    filtered = filtered.filter(r => String(r.salle_numero) === String(salle));
+    filtered = filtered.filter(r => String(r.salle_numero) === salle);
   }
 
   if (date) {
@@ -231,7 +212,7 @@ function renderReservations(list) {
         </div>
 
         <div class="reservation-body">
-          <p>📅 <strong>${r.jour}</strong></p>
+          <p>📅 ${r.jour}</p>
           <p>⏰ ${String(r.heure_debut).slice(0,5)} – ${String(r.heure_fin).slice(0,5)}</p>
           <p>👤 ${r.nom} – ${r.classe}</p>
           <p class="motif">📝 ${r.motif}</p>
@@ -251,12 +232,9 @@ function renderReservations(list) {
     `;
   });
 
-  // bind actions
-  document.querySelectorAll(".reservation-actions button[data-id]").forEach(btn => {
+  document.querySelectorAll(".reservation-actions button").forEach(btn => {
     btn.addEventListener("click", async () => {
-      const id = btn.dataset.id;
-      const status = btn.dataset.status;
-      await updateStatus(id, status);
+      await updateStatus(btn.dataset.id, btn.dataset.status);
     });
   });
 }
@@ -268,42 +246,70 @@ async function updateStatus(id, status) {
   const { error } = await supabaseClient
     .from("reservations_salles")
     .update({
-      status,               // colonne technique
-      statut: labelStatus(status)  // colonne lisible si tu la gardes
+      status,
+      statut: labelStatus(status)
     })
     .eq("id", id);
 
   if (error) {
-    console.error(error);
-    alert("Erreur lors de la mise à jour");
+    alert("Erreur mise à jour");
     return;
   }
 
-  await loadReservations();
+  loadReservations();
+}
+
+/* ===============================
+   🔔 REALTIME ADMIN
+=============================== */
+supabaseClient
+  .channel("admin-reservations")
+  .on(
+    "postgres_changes",
+    {
+      event: "INSERT",
+      schema: "public",
+      table: "reservations_salles"
+    },
+    (payload) => {
+      console.log("🔔 Nouvelle réservation", payload.new);
+      loadReservations();
+      showAdminNotification(payload.new);
+    }
+  )
+  .subscribe();
+
+/* ===============================
+   🔔 NOTIFICATION VISUELLE
+=============================== */
+function showAdminNotification(r) {
+  const n = document.createElement("div");
+  n.className = "admin-notification";
+  n.innerHTML = `
+    🔔 Nouvelle réservation<br>
+    <strong>Salle ${r.salle_numero}</strong><br>
+    ${r.jour} ${String(r.heure_debut).slice(0,5)} – ${String(r.heure_fin).slice(0,5)}
+  `;
+  document.body.appendChild(n);
+  setTimeout(() => n.classList.add("show"), 50);
+  setTimeout(() => {
+    n.classList.remove("show");
+    setTimeout(() => n.remove(), 300);
+  }, 5000);
 }
 
 /* ===============================
    🎛️ EVENTS FILTRES
 =============================== */
-const statusEl = el("filterStatus");
-const salleEl  = el("filterSalle");
-const dateEl   = el("filterDate");
-const resetBtn = el("filterReset");
-
-if (statusEl) statusEl.addEventListener("change", applyFilters);
-if (salleEl)  salleEl.addEventListener("change", applyFilters);
-if (dateEl)   dateEl.addEventListener("change", applyFilters);
-
-if (resetBtn) {
-  resetBtn.addEventListener("click", () => {
-    if (statusEl) statusEl.value = "all";
-    if (salleEl)  salleEl.value = "all";
-    if (dateEl)   dateEl.value = "";
-    applyFilters();
-  });
-} else {
-  console.warn("⚠️ #filterReset absent (pas grave, mais le reset ne marchera pas)");
-}
+el("filterStatus").addEventListener("change", applyFilters);
+el("filterSalle").addEventListener("change", applyFilters);
+el("filterDate").addEventListener("change", applyFilters);
+el("filterReset").addEventListener("click", () => {
+  el("filterStatus").value = "all";
+  el("filterSalle").value = "all";
+  el("filterDate").value = "";
+  applyFilters();
+});
 
 /* ===============================
    🚀 INIT
@@ -312,6 +318,7 @@ loadReservations();
 
 });
 </script>
+
 
 
 </body>
