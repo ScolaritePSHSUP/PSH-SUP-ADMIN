@@ -131,29 +131,16 @@ let allReservations = [];
    📥 LOAD RESERVATIONS
 =============================== */
 async function loadReservations() {
-  const container = el("reservationsList");
-  if (!container) {
-    console.error("❌ #reservationsList introuvable dans le HTML");
-    return;
-  }
-
-  container.innerHTML = "<p style='text-align:center;color:#6b7280;'>Chargement…</p>";
-
   const { data, error } = await supabaseClient
     .from("reservations_salles")
-    .select("*")
-    .order("created_at", { ascending: false });
+    .select("*");
 
-  if (error) {
-    console.error("Erreur chargement reservations_salles:", error);
-    container.innerHTML = "<p style='text-align:center;color:red;'>Erreur de chargement</p>";
-    return;
-  }
+  console.log("RAW DATA:", data, "ERROR:", error);
 
-  allReservations = (data || []).map(r => ({ ...r, _status: normalizeStatus(r) }));
-  fillSalleFilter();
-  applyFilters();
+  document.getElementById("reservationsList").innerHTML =
+    "<pre>" + JSON.stringify(data, null, 2) + "</pre>";
 }
+
 
 /* ===============================
    🏫 FILTRE SALLES
