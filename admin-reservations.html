@@ -80,20 +80,51 @@ const supabaseClient = supabase.createClient(
 );
 
 /* ===============================
-   🔒 PROTECTION ADMIN
+   🔒 PROTECTION ADMIN + PUSH
 =============================== */
 (async () => {
   const { data } = await supabaseClient.auth.getSession();
+
   if (!data.session || data.session.user.user_metadata.role !== "admin") {
     window.location.href = "admin-login.html";
+    return;
   }
+
+  // 🔔 permission notif
+  if ("Notification" in window && Notification.permission === "default") {
+    await Notification.requestPermission();
+  }
+
+  // 🔔 abonnement push admin
+  await subscribeAdminPush();
 })();
 
 /* ===============================
-   🔔 PERMISSION NOTIFICATION
+   🔔 SUBSCRIBE PUSH ADMIN
 =============================== */
-if ("Notification" in window && Notification.permission === "default") {
-  Notification.requestPermission();
+async function subscribeAdminPush() {
+  if (!("serviceWorker" in navigator)) return;
+
+  const reg = await navigator.serviceWorker.ready;
+
+  const existing = await reg.pushManager.getSubscription();
+  if (existing) return; // déjà abonné
+
+  const VAPID_PUBLIC_KEY = "TA_CLE_VAPID_PUBLIQUE"; // ⚠️ remplace ici
+
+  const sub = await reg.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: VAPID_PUBLIC_KEY
+  });
+
+  const json = sub.toJSON();
+
+  await supabaseClient.from("push_subscriptions").upsert({
+    audience: "admin",
+    endpoint: json.endpoint,
+    p256dh: json.keys.p256dh,
+    auth: json.keys.auth
+  });
 }
 
 /* ===============================
@@ -126,7 +157,7 @@ function badgeClass(code) {
 }
 
 /* ===============================
-   🧠 ÉTAT GLOBAL
+   🧠 STATE
 =============================== */
 let allReservations = [];
 
@@ -158,7 +189,7 @@ async function loadReservations() {
 }
 
 /* ===============================
-   🏫 FILTRE SALLES
+   🏫 FILTER SALLES
 =============================== */
 function fillSalleFilter() {
   const select = el("filterSalle");
@@ -172,7 +203,7 @@ function fillSalleFilter() {
 }
 
 /* ===============================
-   🔍 APPLY FILTERS
+   🔍 FILTERS
 =============================== */
 function applyFilters() {
   const status = el("filterStatus").value;
@@ -181,15 +212,9 @@ function applyFilters() {
 
   let filtered = [...allReservations];
 
-  if (status !== "all") {
-    filtered = filtered.filter(r => r._status === status);
-  }
-  if (salle !== "all") {
-    filtered = filtered.filter(r => String(r.salle_numero) === salle);
-  }
-  if (date) {
-    filtered = filtered.filter(r => r.jour === date);
-  }
+  if (status !== "all") filtered = filtered.filter(r => r._status === status);
+  if (salle !== "all") filtered = filtered.filter(r => String(r.salle_numero) === salle);
+  if (date) filtered = filtered.filter(r => r.jour === date);
 
   renderReservations(filtered);
 }
@@ -220,7 +245,7 @@ function renderReservations(list) {
           <p>📅 ${r.jour}</p>
           <p>⏰ ${String(r.heure_debut).slice(0,5)} – ${String(r.heure_fin).slice(0,5)}</p>
           <p>👤 ${r.nom} – ${r.classe}</p>
-          <p class="motif">📝 ${r.motif}</p>
+          <p>📝 ${r.motif}</p>
         </div>
 
         <div class="reservation-actions">
@@ -265,41 +290,25 @@ async function updateStatus(id, status) {
 }
 
 /* ===============================
-   🔔 REALTIME – NOTIFICATION ADMIN
+   🔔 REALTIME ADMIN (UI only)
 =============================== */
 supabaseClient
   .channel("admin-reservations")
   .on(
     "postgres_changes",
-    {
-      event: "INSERT",
-      schema: "public",
-      table: "reservations_salles"
-    },
+    { event: "INSERT", schema: "public", table: "reservations_salles" },
     payload => {
-      console.log("🔔 Nouvelle réservation", payload.new);
-
-      // refresh liste
+      console.log("🔔 Nouvelle réservation realtime");
       loadReservations();
-
-      // 🔔 notification système
-      if (Notification.permission === "granted") {
-        new Notification("Nouvelle réservation de salle", {
-          body: `Salle ${payload.new.salle_numero}\n${payload.new.jour} ${payload.new.heure_debut} → ${payload.new.heure_fin}`,
-          icon: "/PSH-SUP-ADMIN/icons/icon-192.png"
-        });
-      }
-
-      // 🔔 notification visuelle interne
-      showAdminNotification(payload.new);
+      showToast(payload.new);
     }
   )
   .subscribe();
 
 /* ===============================
-   🔔 NOTIFICATION VISUELLE
+   🔔 TOAST UI
 =============================== */
-function showAdminNotification(r) {
+function showToast(r) {
   const n = document.createElement("div");
   n.className = "admin-notification";
   n.innerHTML = `
@@ -313,11 +322,11 @@ function showAdminNotification(r) {
   setTimeout(() => {
     n.classList.remove("show");
     setTimeout(() => n.remove(), 300);
-  }, 5000);
+  }, 4000);
 }
 
 /* ===============================
-   🎛️ EVENTS FILTRES
+   🎛️ EVENTS
 =============================== */
 el("filterStatus").addEventListener("change", applyFilters);
 el("filterSalle").addEventListener("change", applyFilters);
@@ -336,6 +345,7 @@ loadReservations();
 
 });
 </script>
+
 
 
 </body>
