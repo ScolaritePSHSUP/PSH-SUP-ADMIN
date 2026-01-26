@@ -1,33 +1,13 @@
-const BASE_PATH = "/PSH-SUP-ADMIN";
-
-/* ===============================
-   INSTALL / ACTIVATE
-=============================== */
 self.addEventListener("install", event => {
-  console.log("SW installed");
   self.skipWaiting();
 });
 
 self.addEventListener("activate", event => {
-  console.log("SW activated");
   self.clients.claim();
 });
 
 /* ===============================
-   FETCH (ne pas casser Supabase)
-=============================== */
-self.addEventListener("fetch", event => {
-  const url = new URL(event.request.url);
-
-  // ne pas intercepter supabase / externes
-  if (url.origin !== self.location.origin) return;
-  if (event.request.method !== "GET") return;
-
-  event.respondWith(fetch(event.request));
-});
-
-/* ===============================
-   PUSH
+   PUSH (réception serveur)
 =============================== */
 self.addEventListener("push", event => {
   console.log("📩 PUSH reçu", event);
@@ -36,33 +16,34 @@ self.addEventListener("push", event => {
   if (event.data) {
     try {
       data = event.data.json();
-    } catch {
-      data = { title: "Nouvelle réservation", body: "Nouvelle demande" };
+    } catch (e) {
+      console.error("❌ Push JSON invalide", e);
     }
   }
 
+  const title = data.title || "Nouvelle réservation";
+  const options = {
+    body: data.body || "Une nouvelle réservation a été créée",
+    icon: "/PSH-SUP-ADMIN/icons/icon-192.png",
+    badge: "/PSH-SUP-ADMIN/icons/icon-192.png",
+    data: {
+      url: data.url || "/PSH-SUP-ADMIN/admin-reservations.html"
+    }
+  };
+
   event.waitUntil(
-    self.registration.showNotification(
-      data.title || "Nouvelle réservation",
-      {
-        body: data.body || "Une nouvelle réservation a été créée",
-        icon: "/PSH-SUP-ADMIN/icons/icon-192.png",
-        badge: "/PSH-SUP-ADMIN/icons/icon-192.png",
-        vibrate: [200, 100, 200],
-        tag: "reservation",
-        data: { url: "/PSH-SUP-ADMIN/admin-reservations.html" }
-      }
-    )
+    self.registration.showNotification(title, options)
   );
 });
 
 /* ===============================
-   CLICK NOTIF
+   CLICK NOTIFICATION
 =============================== */
 self.addEventListener("notificationclick", event => {
   event.notification.close();
+  const url = event.notification.data?.url || "/PSH-SUP-ADMIN/admin-reservations.html";
 
   event.waitUntil(
-    clients.openWindow("/PSH-SUP-ADMIN/admin-reservations.html")
+    clients.openWindow(url)
   );
 });
