@@ -134,7 +134,6 @@ async function subscribeAdminPush() {
 
   const reg = await navigator.serviceWorker.ready;
 
-  // ✅ on regarde s’il y a déjà une subscription valide
   let sub = await reg.pushManager.getSubscription();
 
   if (!sub) {
@@ -148,7 +147,6 @@ async function subscribeAdminPush() {
 
   const json = sub.toJSON();
 
-  // ✅ upsert = remplace si déjà présent
   await supabaseClient.from("push_subscriptions").upsert({
     audience: "admin",
     endpoint: json.endpoint,
@@ -156,7 +154,7 @@ async function subscribeAdminPush() {
     auth: json.keys.auth
   });
 
-  console.log("✅ Subscription push admin OK");
+  console.log("✅ PUSH ADMIN OK");
 }
 
 
