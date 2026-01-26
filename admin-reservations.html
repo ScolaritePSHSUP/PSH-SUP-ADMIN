@@ -102,19 +102,35 @@ const supabaseClient = supabase.createClient(
 /* ===============================
    🔔 SUBSCRIBE PUSH ADMIN
 =============================== */
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding)
+    .replace(/-/g, "+")
+    .replace(/_/g, "/");
+
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+
+  return outputArray;
+}
+
 async function subscribeAdminPush() {
   if (!("serviceWorker" in navigator)) return;
 
   const reg = await navigator.serviceWorker.ready;
 
   const existing = await reg.pushManager.getSubscription();
-  if (existing) return; // déjà abonné
+  if (existing) return;
 
-  const VAPID_PUBLIC_KEY = "TA_CLE_VAPID_PUBLIQUE"; // ⚠️ remplace ici
+  const VAPID_PUBLIC_KEY = "BETw8tFdLbKb_40zgjvMfccOJhnZyvZiKUwKOwWa7TfFdY1EyoxWt__uTaST0_voPfOL6b38KFuJrbVyXTSSKNo";
 
   const sub = await reg.pushManager.subscribe({
     userVisibleOnly: true,
-    applicationServerKey: VAPID_PUBLIC_KEY
+    applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
   });
 
   const json = sub.toJSON();
@@ -126,6 +142,7 @@ async function subscribeAdminPush() {
     auth: json.keys.auth
   });
 }
+
 
 /* ===============================
    🧩 HELPERS
