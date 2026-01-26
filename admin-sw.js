@@ -29,20 +29,20 @@ self.addEventListener("fetch", event => {
 
   event.respondWith(
     fetch(event.request).catch(() =>
-      caches.match("/PSH-SUP-ADMIN/index.html")
+      caches.match(`${BASE_PATH}/admin-reservations.html`)
     )
   );
 });
 
 /* ===============================
-   MESSAGE (notif locale)
+   MESSAGE (notif locale optionnelle)
 =============================== */
 self.addEventListener("message", event => {
   if (event.data?.type === "PUSH_NOTIFICATION") {
     self.registration.showNotification(event.data.title, {
       body: event.data.body,
-      icon: "/PSH-SUP-ADMIN/icons/icon-192.png",
-      badge: "/PSH-SUP-ADMIN/icons/icon-192.png"
+      icon: `${BASE_PATH}/icons/icon-192.png`,
+      badge: `${BASE_PATH}/icons/icon-192.png`
     });
   }
 });
@@ -53,17 +53,25 @@ self.addEventListener("message", event => {
 self.addEventListener("push", event => {
   let data = {};
   if (event.data) {
-    data = event.data.json();
+    try {
+      data = event.data.json();
+    } catch (e) {
+      console.error("Erreur parsing push data", e);
+    }
   }
 
   self.registration.showNotification(
     data.title || "Nouvelle réservation",
     {
       body: data.body || "Une nouvelle réservation a été créée",
-      icon: "/PSH-SUP-ADMIN/icons/icon-192.png",
-      badge: "/PSH-SUP-ADMIN/icons/icon-192.png",
+      icon: `${BASE_PATH}/icons/icon-192.png`,
+      badge: `${BASE_PATH}/icons/icon-192.png`,
       vibrate: [200, 100, 200],
-      tag: "reservation"
+      tag: "reservation",
+      requireInteraction: true, // la notif reste jusqu'au clic
+      data: {
+        url: data.url || `${BASE_PATH}/admin-reservations.html`
+      }
     }
   );
 });
@@ -73,7 +81,19 @@ self.addEventListener("push", event => {
 =============================== */
 self.addEventListener("notificationclick", event => {
   event.notification.close();
+
+  const url = event.notification.data?.url || `${BASE_PATH}/admin-reservations.html`;
+
   event.waitUntil(
-    clients.openWindow("/PSH-SUP-ADMIN/admin-reservations.html")
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then(windowClients => {
+      for (const client of windowClients) {
+        if (client.url.includes(url) && "focus" in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow(url);
+      }
+    })
   );
 });
