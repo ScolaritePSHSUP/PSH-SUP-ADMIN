@@ -361,6 +361,16 @@ el("filterReset").addEventListener("click", () => {
 loadReservations();
 
 });
+
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/PSH-SUP-ADMIN/admin-sw.js")
+    .then(reg => {
+      console.log("✅ Service Worker enregistré", reg);
+    })
+    .catch(err => {
+      console.error("❌ Erreur Service Worker", err);
+    });
+}
 </script>
 
 
