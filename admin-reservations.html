@@ -95,9 +95,20 @@ const supabaseClient = supabase.createClient(
     await Notification.requestPermission();
   }
 
+  // ✅ enregistrer le SW AVANT
+  let reg;
+  if ("serviceWorker" in navigator) {
+    reg = await navigator.serviceWorker.register("/PSH-SUP-ADMIN/admin-sw.js");
+    console.log("✅ Service Worker enregistré");
+  }
+
+  // ✅ attendre qu'il soit prêt
+  await navigator.serviceWorker.ready;
+
   // 🔔 abonnement push admin
   await subscribeAdminPush();
 })();
+
 
 /* ===============================
    🔔 SUBSCRIBE PUSH ADMIN
@@ -123,8 +134,9 @@ async function subscribeAdminPush() {
 
   const reg = await navigator.serviceWorker.ready;
 
-  const existing = await reg.pushManager.getSubscription();
-  if (existing) return;
+  // 🔥 on force une nouvelle subscription
+  const old = await reg.pushManager.getSubscription();
+  if (old) await old.unsubscribe();
 
   const VAPID_PUBLIC_KEY = "BETw8tFdLbKb_40zgjvMfccOJhnZyvZiKUwKOwWa7TfFdY1EyoxWt__uTaST0_voPfOL6b38KFuJrbVyXTSSKNo";
 
@@ -135,13 +147,14 @@ async function subscribeAdminPush() {
 
   const json = sub.toJSON();
 
-  await supabaseClient.from("push_subscriptions").upsert({
+  await supabaseClient.from("push_subscriptions").insert({
     audience: "admin",
     endpoint: json.endpoint,
     p256dh: json.keys.p256dh,
     auth: json.keys.auth
   });
 }
+
 
 
 /* ===============================
@@ -362,15 +375,6 @@ loadReservations();
 
 });
 
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("/PSH-SUP-ADMIN/admin-sw.js")
-    .then(reg => {
-      console.log("✅ Service Worker enregistré", reg);
-    })
-    .catch(err => {
-      console.error("❌ Erreur Service Worker", err);
-    });
-}
 </script>
 
 
