@@ -134,26 +134,31 @@ async function subscribeAdminPush() {
 
   const reg = await navigator.serviceWorker.ready;
 
-  // 🔥 on force une nouvelle subscription
-  const old = await reg.pushManager.getSubscription();
-  if (old) await old.unsubscribe();
+  // ✅ on regarde s’il y a déjà une subscription valide
+  let sub = await reg.pushManager.getSubscription();
 
-  const VAPID_PUBLIC_KEY = "BETw8tFdLbKb_40zgjvMfccOJhnZyvZiKUwKOwWa7TfFdY1EyoxWt__uTaST0_voPfOL6b38KFuJrbVyXTSSKNo";
+  if (!sub) {
+    const VAPID_PUBLIC_KEY = "BETw8tFdLbKb_40zgjvMfccOJhnZyvZiKUwKOwWa7TfFdY1EyoxWt__uTaST0_voPfOL6b38KFuJrbVyXTSSKNo";
 
-  const sub = await reg.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-  });
+    sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+    });
+  }
 
   const json = sub.toJSON();
 
-  await supabaseClient.from("push_subscriptions").insert({
+  // ✅ upsert = remplace si déjà présent
+  await supabaseClient.from("push_subscriptions").upsert({
     audience: "admin",
     endpoint: json.endpoint,
     p256dh: json.keys.p256dh,
     auth: json.keys.auth
   });
+
+  console.log("✅ Subscription push admin OK");
 }
+
 
 
 
